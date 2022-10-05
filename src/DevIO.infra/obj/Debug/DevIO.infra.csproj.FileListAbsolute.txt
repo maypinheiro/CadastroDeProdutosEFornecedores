@@ -1,0 +1,14 @@
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\bin\Debug\DevIO.infra.dll.config
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\bin\Debug\DevIO.infra.dll
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\bin\Debug\DevIO.infra.pdb
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\bin\Debug\DevIO.Business.dll
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\bin\Debug\EntityFramework.dll
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\bin\Debug\EntityFramework.SqlServer.dll
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\bin\Debug\DevIO.Business.pdb
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\bin\Debug\EntityFramework.xml
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\bin\Debug\EntityFramework.SqlServer.xml
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\obj\Debug\DevIO.infra.csproj.AssemblyReference.cache
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\obj\Debug\DevIO.infra.csproj.CoreCompileInputs.cache
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\obj\Debug\DevIO.infra.csproj.CopyComplete
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\obj\Debug\DevIO.infra.dll
+C:\Users\017586631\source\repos\MeusProdutos\src\DevIO.infra\obj\Debug\DevIO.infra.pdb
