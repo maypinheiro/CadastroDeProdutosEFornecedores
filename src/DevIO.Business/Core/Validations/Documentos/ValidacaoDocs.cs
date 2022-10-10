@@ -54,7 +54,6 @@ namespace DevIO.Business.Core.Validations.Documentos
             return string.Concat(firstDigit, secondDigit) == valor.Substring(TamanhoCpf - 2, 2);
         }
     }
-
     public class CnpjValidacao
     {
         public const int TamanhoCnpj = 14;
@@ -104,7 +103,6 @@ namespace DevIO.Business.Core.Validations.Documentos
             return string.Concat(firstDigit, secondDigit) == valor.Substring(TamanhoCnpj - 2, 2);
         }
     }
-
     public class DigitoVerificador
     {
         private string _numero;
@@ -163,7 +161,6 @@ namespace DevIO.Business.Core.Validations.Documentos
             return _substituicoes.ContainsKey(resultado) ? _substituicoes[resultado] : resultado.ToString();
         }
     }
-
     public class Utils
     {
         public static string ApenasNumeros(string valor)
