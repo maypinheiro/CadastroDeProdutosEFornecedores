@@ -1,0 +1,155 @@
+using Dapper;
+using Exemplo.Application.Read.DTOs;
+using Exemplo.Application.Read.Queries.Aeroportos;
+using Exemplo.Application.Read.QueryDTOs.Aeroportos;
+using Exemplo.Application.Read.Repositories;
+using Exemplo.Infra.Data.Dapper.Repositories.Base;
+using Microsoft.Extensions.Configuration;
+using System.Threading.Tasks;
+
+namespace Exemplo.Infra.Data.Dapper.Repositories
+{
+    public class AeroportoQuery : QueryBaseReadOnly, IAeroportoQuery
+    {
+        public AeroportoQuery(IConfiguration config) : base(config)
+        {
+
+        }
+        public async Task<PageDTO<AeroportoPagedDTO>> GetPagedByFilterAsync(GetAeroportoPagedQuery query)
+        {
+            var builder = CreateSqlBuilder(query,  out SqlBuilder.Template selector);
+
+            builder.Select("PageNumber", new { query.PageNumber });
+            builder.Select("PageSize", new { query.PageSize });
+
+            var page = new PageDTO<AeroportoPagedDTO>
+            {
+                PageSize = query.PageSize,
+                PageNumber = query.PageNumber,
+                PageCount = await Connection.QueryFirstAsync<int>
+                (
+                    $@"SELECT (
+                                CASE 
+                                    WHEN (COUNT(*) / :PageSize) <> TRUNC(COUNT(*) / :PageSize, 0) THEN TRUNC(COUNT(*) / :PageSize, 0) + 1 
+                                    ELSE (COUNT(*) / :PageSize) 
+                                END
+                              ) PageCount 
+                        FROM  ({selector.RawSql}) T",
+                    selector.Parameters
+                ),
+                PageTotalItems = await Connection.QueryFirstAsync<int>($@"SELECT COUNT(*) PageTotalItems FROM ({selector.RawSql}) T", selector.Parameters),
+            };
+
+            builder.AddParameters(new { offset = (query.PageNumber - 1) * query.PageSize, nrows = query.PageSize });
+
+            builder.OrderBy($"{GetSortByColum(query.SortByColumn)} {(query.SortBy ?? "ASC")}");
+
+            page.Items = await Connection.QueryAsync<AeroportoPagedDTO>($@"{selector.RawSql} OFFSET @offset ROWS FETCH NEXT @nrows ROWS ONLY", selector.Parameters);
+
+            return page;
+        }
+        private SqlBuilder CreateSqlBuilder(GetAeroportoPagedQuery query, out SqlBuilder.Template selector)
+        {
+            var builder = new SqlBuilder();
+
+            selector = builder.AddTemplate(@"
+                         SELECT 
+                                a.aept_cod_aeroporto AS Id,
+                                a.aept_cod_icao AS ICAO,
+	                            a.aept_dsc_aerodromo AS Aerodromo,
+	                            c.cida_dsc_descricao AS Cidade,
+                                es.esta_cod_abreviacao AS Estado,
+                                p.pais_dsc_abreviacao AS Pais,
+                                a.aept_flg_ativo AS Ativo,
+                                comb.aeco_dsc_descricao as Combustivel,
+                                op.aeop_dsc_descricao as Operacao,
+                                a.aept_dsc_distancia_cidade AS DistanciaCidade,
+                                a.aept_vlr_latitude as Latitude,
+                                a.aept_vlr_longitude as Longitude,
+                                u.usua_dsc_nome AS UsuarioInclusao,
+                                a.aept_dat_data_inclusao AS DataCadastro,
+                                us.usua_dsc_nome AS UsuarioAlteracao,
+                                a.aept_dat_data_alteracao AS DataAlteracao
+                            FROM ua_aept_aeroporto a
+                            INNER JOIN ua_usua_usuario u ON a.aept_cod_usua_inclusao = u.usua_cod_usuario
+                            INNER JOIN ua_usua_usuario us ON a.aept_cod_usua_alteracao = us.usua_cod_usuario
+                            INNER JOIN ua_cida_cidade c ON c.cida_cod_cidade = a.aept_cod_cidade
+                            INNER JOIN ua_esta_estado es ON c.cida_cod_estado = es.esta_cod_estado
+                            INNER JOIN ua_pais_pais p ON es.esta_cod_pais = p.pais_cod_pais
+                            INNER JOIN ua_aeco_aeroporto_combustivel comb ON comb.aeco_cod_aeroporto_combustivel = a.aept_cod_aeroporto_combustivel
+                            INNER JOIN ua_aeop_aeroporto_operacao op ON op.aeop_cod_aeroporto_operacao  = a.aept_cod_aeroporto_operacao 
+                            /**where**/ /**orderby**/");
+
+            if (!string.IsNullOrEmpty(query.SearchTerm))
+            {
+                builder.Where(@"UPPER(a.aept_cod_icao) LIKE @term OR
+                                UPPER(a.aept_dsc_aerodromo) LIKE @term OR
+                                UPPER(a.aept_dsc_distancia_cidade) LIKE @term OR
+                                UPPER(c.cida_dsc_descricao) LIKE @term OR
+                                UPPER(es.esta_dsc_descricao) LIKE @term OR
+                                UPPER(p.pais_dsc_descricao) LIKE @term", new { term = $"%{query.SearchTerm.ToUpper()}%" });
+            }
+
+            if (!string.IsNullOrEmpty(query.SearchIcao))
+            {
+                builder.Where(@"UPPER(a.aept_cod_icao) = @codigoIcao", new { codigoIcao = query.SearchIcao.ToUpper() });
+            }
+
+            if (!string.IsNullOrEmpty(query.SearchAerodromo))
+            {
+                builder.Where(@"UPPER(a.aept_dsc_aerodromo) = @aerodromo", new { aerodromo = query.SearchAerodromo.ToUpper() });
+            }
+
+            if (query.SearchPaisId.HasValue)
+            {
+                builder.Where(@"p.pais_cod_pais = @paisId", new { paisId = query.SearchPaisId.Value });
+            }
+
+            if (query.SearchEstadoId.HasValue)
+            {
+                builder.Where(@"es.esta_cod_estado = @estadoId", new { estadoId = query.SearchEstadoId.Value });
+            }
+
+            if (query.SearchCidadeId.HasValue)
+            {
+                builder.Where(@"c.cida_cod_cidade = @cidadeId", new { cidadeId = query.SearchCidadeId.Value });
+            }
+
+            if (query.SearchStatus.HasValue)
+            {
+                builder.Where(@"a.aept_flg_ativo = @ativo", new { ativo = query.SearchStatus.Value });
+            }
+
+            return builder;
+        }
+        private string GetSortByColum(string sortByColumn)
+        {
+            switch (sortByColumn?.ToUpper())
+            {
+                case "AERODROMO":
+                    sortByColumn = "a.aept_dsc_aerodromo";
+                    break; 
+                //case "DISTANCIA":
+                //    sortByColumn = "a.aept_dsc_distancia_cidade";
+                //    break;
+                case "CIDADE":
+                    sortByColumn = "a.aept_cod_cidade";
+                    break;
+                case "ESTADO":
+                    sortByColumn = "es.esta_cod_estado";
+                    break;
+                case "PAIS":
+                    sortByColumn = "p.pais_cod_pais";
+                    break;
+                case "STATUS":
+                    sortByColumn = "a.aept_flg_ativo";
+                    break;
+                default:
+                    sortByColumn = "a.aept_cod_icao";
+                    break;
+            }
+
+            return sortByColumn;
+        }
+    }
+}
